@@ -5,6 +5,17 @@ terraform {
     }
   }
 }
+
+/*
+terraform {
+  backend "s3" {
+    bucket = "remote-state-app"
+    region = "var.region"
+    key    = "eks/terraform.tfstate"
+  }
+}
+*/
+
 provider "aws" {
   region     = var.region
   access_key = var.AWS_ACCESS_KEY_ID
@@ -51,7 +62,6 @@ module "vpc" {
     "kubernetes.io/role/internal-elb" = 1
   }
 }
-
 resource "aws_iam_role" "eks-iam-role" {
   name = "servicesweb-eks-iam-role"
 
@@ -75,7 +85,6 @@ resource "aws_iam_role" "eks-iam-role" {
  ]
 }
 EOF
-
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
@@ -149,46 +158,49 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
 }
 
 /***********************************
-* Data Source aws_ami pour sélectionner l'ami eks optimized de la région
+* Zone Route 53 
 ***********************************/
+resource "aws_route53_zone" "my_subdomain" {
+  name = "servicesweb.0xclem.cloudns.ch"
+}
+
 /*
-data "aws_ami" "eks_optimized" {
-  most_recent = true
-  owners      = ["amazon"]
-  //owners      = ["602401143452"] # Amazon EKS Optimized AMI Owner ID
+resource "aws_iam_policy" "AWSLoadBalancerControllerIAMPolicy" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "Politique IAM pour AWS Load Balancer Controller"
 
-  filter {
-    name   = "name"
-    values = ["amazon-eks-node-1.28-*"]
-  }
+  policy = file("iam_policy.json")
 }
 
-resource "aws_launch_template" "eks" {
-  name_prefix   = "eks-launch-template"
-  image_id = data.aws_ami.amazon-linux-2.id
-  #image_id      = data.aws_ami.eks.id
-  instance_type = "t3.small"
-
-  user_data = base64encode(<<-EOF
-    MIME-Version: 1.0
-    Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
-    --==MYBOUNDARY==
-    Content-Type: text/x-shellscript; charset="us-ascii"
-    #!/bin/bash
-    /etc/eks/bootstrap.sh your-eks-cluster
-    yum update -y
-    yum install -y mysql
-    --==MYBOUNDARY==--\
-      EOF
-  )
-
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name = "eks-node"
-    }
-  }
+resource "aws_iam_policy" "AllowExternalDNSUpdates" {
+  name        = "AllowExternalDNSUpdates"
+  description = "Politique pour permettre à External DNS et ALB de mettre à jour Route 53"
+  policy      = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "route53:ChangeResourceRecordSets"
+        ],
+        "Resource": [
+          "arn:aws:route53:::hostedzone/${aws_route53_zone.my_subdomain.zone_id}"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "route53:ListHostedZones",
+          "route53:ListResourceRecordSets"
+        ],
+        "Resource": [
+          "*"
+        ]
+      }
+    ]
+  })
 }
+
 */
 
 resource "aws_eks_node_group" "worker-node-group" {
@@ -202,13 +214,13 @@ resource "aws_eks_node_group" "worker-node-group" {
     max_size     = 2
     min_size     = 1
   }
-  
-  instance_types  = ["t3.small"]
+
+  instance_types = ["t3.small"]
   /*launch_template {
     id        = aws_launch_template.eks.id
     version   = aws_launch_template.eks.latest_version
   }*/
-  
+
   remote_access {
     ec2_ssh_key               = var.key_name
     source_security_group_ids = [aws_security_group.all_worker_mgmt.id]
@@ -255,6 +267,7 @@ resource "aws_iam_role_policy_attachment" "storage" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
   role       = aws_iam_role.workernodes.name
 }
+
 
 module "rds" {
   source           = "./modules/rds"

@@ -39,6 +39,7 @@ variable "db_instance_name" {
   type    = string
   default = "mysql-wordpress"
 }
+
 /*
 # db instance name
 variable "wordpress_db" {

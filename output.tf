@@ -12,6 +12,10 @@ output "cluster_security_group_id" {
   value       = aws_security_group.all_worker_mgmt.id
 }
 
+output "subdomain_zoneid" {
+  value = aws_route53_zone.my_subdomain.zone_id
+}
+
 output "region" {
   description = "AWS region"
   value       = var.region
