@@ -5,6 +5,7 @@ Set these variables
     export TF_VAR_MYSQL_DB_USER=**********
 
 Deploy
+    
     into serviceweb-infra
         terraform apply --auto-approve
 
