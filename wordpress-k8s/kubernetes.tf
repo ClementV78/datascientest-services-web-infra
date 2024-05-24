@@ -150,7 +150,7 @@ resource "kubernetes_service" "wordpress" {
 *  Certificat ACM
 ***********************************/
 # SSL Certificate avec validation DNS
-resource "aws_acm_certificate" "my_certificate" {
+/*resource "aws_acm_certificate" "my_certificate" {
   domain_name       = "servicesweb.0xclem.cloudns.ch"
   validation_method = "DNS"
 
@@ -161,7 +161,7 @@ resource "aws_acm_certificate" "my_certificate" {
     Environment = "dev"
     Module      = "acm"
   }
-}
+}*/
 /*
 resource "aws_route53_record" "wordpress" {
   zone_id = data.terraform_remote_state.eks.outputs.subdomain_zoneid
@@ -175,22 +175,22 @@ resource "aws_route53_record" "wordpress" {
 *  Record Route 53
 ***********************************/
 # DNS validation record
-resource "aws_route53_record" "cert_validation" {
+/*resource "aws_route53_record" "cert_validation" {
   allow_overwrite = true
   name            = tolist(aws_acm_certificate.my_certificate.domain_validation_options)[0].resource_record_name
   records         = [tolist(aws_acm_certificate.my_certificate.domain_validation_options)[0].resource_record_value]
   type            = tolist(aws_acm_certificate.my_certificate.domain_validation_options)[0].resource_record_type
   zone_id         = data.terraform_remote_state.eks.outputs.subdomain_zoneid
   ttl             = 60
-}
+}*/
 
 /***********************************
 *  Validation certificat ACM
 ***********************************/
-resource "aws_acm_certificate_validation" "my-certificate" {
+/*resource "aws_acm_certificate_validation" "my-certificate" {
   certificate_arn         = aws_acm_certificate.my_certificate.arn
   validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
-}
+}*/
 
 
 ## Add data source ## 
@@ -201,7 +201,7 @@ data "aws_elb_hosted_zone_id" "this" {}
 /***********************************
 *  Enregistrement DNS dans Route 53 pour le Load Balancer
 ***********************************/
-resource "aws_route53_record" "www" {
+/*resource "aws_route53_record" "www" {
   zone_id = data.terraform_remote_state.eks.outputs.subdomain_zoneid
   name    = "servicesweb.0xclem.cloudns.ch"
   type    = "A"
@@ -211,7 +211,7 @@ resource "aws_route53_record" "www" {
     zone_id                = data.aws_elb_hosted_zone_id.this.id ## Updated ##
     evaluate_target_health = true
   }
-}
+}*/
 
 
 output "lb_ip" {
